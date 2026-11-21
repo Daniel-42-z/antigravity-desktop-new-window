@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run unit tests
+        run: node --test tests/*.test.mjs
+
+  nix-build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        env:
+          DISABLE_FLAKEHUB: "true"
+        with:
+          flakehub: false
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Run flake checks
+        run: nix flake check --print-build-logs
+
+      - name: Build and verify FHS package
+        run: |
+          nix build .#google-antigravity --print-build-logs
+          nix shell nixpkgs#nodejs -c node scripts/verify-patch-report.mjs \
+            --strict \
+            --desktop result/share/applications/antigravity.desktop \
+            result/share/antigravity-new-window/patch-report.json

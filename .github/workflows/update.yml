@@ -1,0 +1,86 @@
+name: Auto Update Antigravity
+
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        env:
+          DISABLE_FLAKEHUB: "true"
+        with:
+          flakehub: false
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update antigravity-nix flake input
+        id: update
+        run: |
+          nix flake update antigravity-nix
+          if git diff --quiet flake.lock; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          upstream_path=$(nix eval --raw .#inputs.antigravity-nix.outPath 2>/dev/null || nix flake metadata --json | jq -r '.locks.nodes."antigravity-nix".locked.rev')
+          echo "upstream_ref=$upstream_path" >> "$GITHUB_OUTPUT"
+
+      - name: Verify unit tests and Nix builds (strict)
+        if: steps.update.outputs.has_changes == 'true'
+        run: |
+          nix shell nixpkgs#nodejs -c node --test tests/*.test.mjs
+          nix flake check --print-build-logs
+          nix build .#google-antigravity --print-build-logs
+          nix shell nixpkgs#nodejs -c node scripts/verify-patch-report.mjs \
+            --strict \
+            --desktop result/share/applications/antigravity.desktop \
+            result/share/antigravity-new-window/patch-report.json
+          app_version=$(jq -r '.appVersion' result/share/antigravity-new-window/patch-report.json)
+          echo "app_version=$app_version" >> "$GITHUB_ENV"
+
+      - name: Create Pull Request
+        if: steps.update.outputs.has_changes == 'true'
+        id: pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.AUTO_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update antigravity-nix (${{ env.app_version }})"
+          title: "chore: update antigravity-nix (${{ env.app_version }})"
+          body: |
+            Automated update of `antigravity-nix` flake input to Antigravity `${{ env.app_version }}`.
+
+            ### Verification
+            - `node --test tests/*.test.mjs` passed
+            - `nix flake check` passed
+            - `nix build .#google-antigravity` + strict `patch-report.json` & `.desktop` verification passed
+          branch: auto-update/antigravity-${{ env.app_version }}
+          delete-branch: true
+
+      - name: Enable auto-merge
+        if: steps.update.outputs.has_changes == 'true' && steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+        run: |
+          gh pr merge "$PR_NUMBER" --auto --squash
