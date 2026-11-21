@@ -32,7 +32,7 @@ export function applySecondInstancePatch(source) {
 
   const match = findUniqueMatch(
     source,
-    /([A-Za-z_$][\w$]*)\.app\.on\(\s*(['"])second-instance\2\s*,\s*\(\s*[A-Za-z_$][\w$]*\s*,\s*([A-Za-z_$][\w$]*)\s*\)\s*=>\s*\{\s*(if\s*\(\s*!HEADLESS\s*&&\s*hasStartedMainApplication\s*\)\s*\{\s*\(\s*0\s*,\s*([A-Za-z_$][\w$]*)\.showOrCreateWindow\s*\)\(\s*\(\s*0\s*,\s*([A-Za-z_$][\w$]*)\.getLsPort\s*\)\(\)\s*\);\s*\1\.app\.focus\(\s*\{\s*steal:\s*true\s*\}\s*\);\s*\})/g,
+    /([A-Za-z_$][\w$]*)\.app\.on\(\s*(['"])second-instance\2\s*,\s*\(\s*[A-Za-z_$][\w$]*\s*,\s*([A-Za-z_$][\w$]*)\s*\)\s*=>\s*\{[\s\S]{0,600}?(if\s*\(\s*!HEADLESS\s*&&\s*hasStartedMainApplication\s*\)\s*\{\s*\(\s*0\s*,\s*([A-Za-z_$][\w$]*)\.showOrCreateWindow\s*\)\(\s*\(\s*0\s*,\s*([A-Za-z_$][\w$]*)\.getLsPort\s*\)\(\)\s*\);\s*\1\.app\.focus\(\s*\{\s*steal:\s*true\s*\}\s*\);\s*\})/g,
   );
   if (!match) {
     return {
@@ -166,7 +166,7 @@ export function applyPreloadWindowMenuPatch(source) {
   const electronMod = findModuleName(source, "electron");
   const match = findUniqueMatch(
     source,
-    /(if\s*\(\s*!isRemoteWindow\s*\)\s*\{\s*installHubSurfaceThemeAutoSync\(\);\s*installCustomFlagOverridesSync\(\);\s*\})/g,
+    /(if\s*\(\s*!isRemoteWindow\s*\)\s*\{\s*(?:install[A-Za-z0-9_$]+\(\);\s*)+\})/g,
   );
   if (!electronMod || !match) {
     return {

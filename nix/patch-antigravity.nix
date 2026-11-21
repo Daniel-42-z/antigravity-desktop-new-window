@@ -24,7 +24,6 @@ let
     );
 
   renderDesktopSnippet = ''
-    install -Dm644 "$reportFile" "$out/share/antigravity-new-window/patch-report.json"
     desktopFile="$out/share/applications/antigravity.desktop"
     if [ -f "$desktopFile" ]; then
       if [ -L "$desktopFile" ]; then
@@ -36,6 +35,9 @@ let
         --input "$desktopFile" \
         --output "$desktopFile.tmp"
       mv "$desktopFile.tmp" "$desktopFile"
+    else
+      echo "ERROR: expected $desktopFile to exist after copyDesktopItems" >&2
+      exit 1
     fi
   '';
 in
@@ -81,7 +83,11 @@ in
       '';
 
       postInstall = (old.postInstall or "") + ''
-        reportFile="__agy_patch_report.json"
+        install -Dm644 "__agy_patch_report.json" "$out/share/antigravity-new-window/patch-report.json"
+      '';
+
+      postFixup = (old.postFixup or "") + ''
+        reportFile="$out/share/antigravity-new-window/patch-report.json"
         ${renderDesktopSnippet}
       '';
     });
@@ -174,7 +180,11 @@ in
     in
     baseFhs.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
-        reportFile="${patchedSrc.report}"
+        install -Dm644 "${patchedSrc.report}" "$out/share/antigravity-new-window/patch-report.json"
+      '';
+
+      postFixup = (old.postFixup or "") + ''
+        reportFile="$out/share/antigravity-new-window/patch-report.json"
         ${renderDesktopSnippet}
       '';
     });

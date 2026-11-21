@@ -392,6 +392,23 @@ test("applyPreloadWindowMenuPatch injects New Window button into Window dropdown
   assert.equal(docListeners[0].key, "Escape");
 });
 
+test("applySecondInstancePatch also matches 2.33.0 layout with pre-window deep link return check", () => {
+  const main233 = MAIN_FIXTURE.replace(
+    "electron_1.app.on('second-instance', (_event, commandLine) => {",
+    "electron_1.app.on('second-instance', (_event, commandLine) => {\n    const url = commandLine.find((arg) => arg.startsWith(`${PROTOCOL}://`));\n    if (url && globalThis.__takeSignInReturn?.(url)) { return; }",
+  );
+  const res = applySecondInstancePatch(main233);
+  assert.equal(res.status, "applied");
+  assert.equal(applySecondInstancePatch(res.content).status, "already-applied");
+
+  const preload233 = PRELOAD_FIXTURE.replace(
+    "installCustomFlagOverridesSync();",
+    "installCustomFlagOverridesSync();\n    installWcvThreeLayerHoleReporter();",
+  );
+  const preloadRes = applyPreloadWindowMenuPatch(preload233);
+  assert.equal(preloadRes.status, "applied");
+});
+
 test("patchExtractedAsar handles drift gracefully when non-strict and fails when strict", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "agy-patch-test-"));
   try {
