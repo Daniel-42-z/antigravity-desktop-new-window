@@ -64,7 +64,7 @@ jobs:
         id: pr
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.AUTO_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update antigravity-nix (${{ env.app_version }})"
           title: "chore: update antigravity-nix (${{ env.app_version }})"
           body: |
@@ -77,10 +77,12 @@ jobs:
           branch: auto-update/antigravity-${{ env.app_version }}
           delete-branch: true
 
-      - name: Enable auto-merge
+      - name: Merge Pull Request
         if: steps.update.outputs.has_changes == 'true' && steps.pr.outputs.pull-request-number != ''
         env:
-          GH_TOKEN: ${{ secrets.AUTO_UPDATE_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
         run: |
-          gh pr merge "$PR_NUMBER" --auto --squash
+          if ! gh pr merge "$PR_NUMBER" --squash --delete-branch; then
+            gh pr merge "$PR_NUMBER" --auto --squash
+          fi

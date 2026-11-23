@@ -67,9 +67,9 @@ nix build .#google-antigravity
 
 ## Auto-Update CI
 
-`.github/workflows/update.yml` runs daily, updates the `antigravity-nix` input, runs unit tests, builds both variants with strict patch verification, opens a PR, and enables auto-merge (`gh pr merge --auto --squash`).
+`.github/workflows/update.yml` runs daily, updates the `antigravity-nix` input, runs unit tests, builds both variants with strict patch verification, opens a PR, and squash-merges it using `GITHUB_TOKEN` (falling back to `gh pr merge --auto --squash` if branch protection is enabled).
 
 In GitHub repository settings:
-1. Enable **Allow auto-merge**.
+1. Enable **Allow squash merging**.
 2. Enable **Allow GitHub Actions to create and approve pull requests**.
-3. Optionally add an `AUTO_UPDATE_TOKEN` secret if branch protection requires `ci.yml` status checks on bot-opened PRs.
+3. Enable **Allow auto-merge** (only needed if you later add branch protection requiring status checks).
