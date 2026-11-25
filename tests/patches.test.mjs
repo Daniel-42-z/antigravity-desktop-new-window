@@ -409,6 +409,16 @@ test("applySecondInstancePatch also matches 2.33.0 layout with pre-window deep l
   assert.equal(preloadRes.status, "applied");
 });
 
+test("applyIpcWindowNewPatch also matches 2.35.0 layout using windowForSender", () => {
+  const ipc235 = IPC_FIXTURE.replace(
+    "const win = getTargetHubWindow(event?.sender);",
+    "const win = windowForSender(event?.sender);",
+  );
+  const res = applyIpcWindowNewPatch(ipc235);
+  assert.equal(res.status, "applied");
+  assert.equal(applyIpcWindowNewPatch(res.content).status, "already-applied");
+});
+
 test("patchExtractedAsar handles drift gracefully when non-strict and fails when strict", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "agy-patch-test-"));
   try {

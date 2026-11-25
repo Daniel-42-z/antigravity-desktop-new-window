@@ -111,7 +111,7 @@ export function applyIpcWindowNewPatch(source) {
 
   const match = findUniqueMatch(
     source,
-    /(([A-Za-z_$][\w$]*)\.ipcMain\.handle\(\s*(['"])window:close\3\s*,\s*async\s*\(\s*event\s*\)\s*=>\s*\{\s*const\s+win\s*=\s*getTargetHubWindow\(event\?\.sender\);\s*if\s*\(\s*win\s*\)\s*\{\s*win\.close\(\);\s*\}\s*\}\s*\);)/g,
+    /(([A-Za-z_$][\w$]*)\.ipcMain\.handle\(\s*(['"])window:close\3\s*,\s*async\s*\(\s*event\s*\)\s*=>\s*\{\s*const\s+win\s*=\s*(?:getTargetHubWindow|windowForSender)\(event\?\.sender\);\s*if\s*\(\s*win\s*\)\s*\{\s*win\.close\(\);\s*\}\s*\}\s*\);)/g,
   );
   if (!match) {
     return {
